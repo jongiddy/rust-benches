@@ -1,0 +1,14 @@
+[root]
+name = "rotate"
+version = "0.1.0"
+dependencies = [
+ "gcd 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gcd"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[metadata]
+"checksum gcd 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0896cb73353671dbe2b17312c97b55b7032831d28c809c703bece4a392b1df3a"
