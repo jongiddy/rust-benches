@@ -27,6 +27,20 @@ fn swap_unchecked<T>(s: &mut [T], a: usize, b: usize, k: usize) {
 }
 
 #[inline]
+fn swap_inline<T>(s: &mut [T], k: usize) {
+    // Swap front k items of sequence with back k items
+    debug_assert!(k <= s.len() / 2);
+    let b = s.len() - k;
+    for i in 0..k {
+        unsafe {
+            let pa: *mut T = s.get_unchecked_mut(i);
+            let pb: *mut T = s.get_unchecked_mut(b + i);
+            std::ptr::swap(pa, pb);
+        }
+    }
+}
+
+#[inline]
 fn addmod(a: usize, b: usize, n: usize) -> usize {
     // Faster than using the % operator, addition of two mod values can
     // never be more than 2n - 2, so a single subtraction gets back into range
@@ -36,6 +50,39 @@ fn addmod(a: usize, b: usize, n: usize) -> usize {
     }
     else {
         c
+    }
+}
+
+fn rotate_adapt_gcd<T>(s: &mut [T], k: usize) {
+    let n = s.len();
+    if k == 0 || k == n {
+        return
+    }
+    debug_assert!(k < n);
+    match k.gcd(n - k) {
+        1 => {
+            let mut j = k;
+            while j != 0 {
+                s.swap(0, j);
+                j = addmod(j, k, n);
+            }
+        },
+        2 => {
+            let mut j = k;
+            while j != 0 {
+                s.swap(0, j);
+                s.swap(1, j + 1);
+                j = addmod(j, k, n);
+            }
+
+        },
+        blksize => {
+            let mut j = k;
+            for _ in 0 .. n / blksize - 1 {
+                swap_inline(&mut s[0 .. j + blksize], blksize);
+                j = addmod(j, k, n);
+            }
+        },
     }
 }
 
@@ -99,7 +146,7 @@ fn rotate_block<T>(s: &mut [T], k: usize) {
     debug_assert!(n > k);
     let c = k.gcd(n - k);
     let mut p = k;
-    for j in 0 .. n / c - 1 {
+    for _ in 0 .. n / c - 1 {
         for i in 0..c {
             s.swap(i, p + i)
         }
@@ -117,7 +164,7 @@ fn rotate_block_addmod<T>(s: &mut [T], k: usize) {
     debug_assert!(n > k);
     let c = k.gcd(n - k);
     let mut p = k;
-    for j in 0 .. n / c - 1 {
+    for _ in 0 .. n / c - 1 {
         for i in 0..c {
             s.swap(i, p + i)
         }
@@ -133,7 +180,7 @@ fn rotate_block_swap<T>(s: &mut [T], k: usize) {
     debug_assert!(n > k);
     let c = k.gcd(n - k);
     let mut p = k;
-    for j in 0 .. n / c - 1 {
+    for _ in 0 .. n / c - 1 {
         swap_unchecked(s, 0, p, c);
         p += k;
         if p >= n { p -= n }
@@ -156,7 +203,7 @@ fn rotate_block_adapt<T>(s: &mut [T], k: usize) {
         }
     } else {
         let mut j = k;
-        for i in 0 .. n / c - 1 {
+        for _ in 0 .. n / c - 1 {
             swap_unchecked(s, 0, j, c);
             j += k;
             if j >= n { j -= n }
@@ -172,7 +219,7 @@ fn rotate_block_unchecked<T>(s: &mut [T], k: usize) {
     debug_assert!(n > k);
     let c = k.gcd(n - k);
     let mut p = k;
-    for j in 0 .. n / c - 1 {
+    for _ in 0 .. n / c - 1 {
         for i in 0..c {
             unsafe {
                 let pa: *mut T = s.get_unchecked_mut(i);
@@ -193,7 +240,7 @@ fn rotate_block_unchecked_addmod<T>(s: &mut [T], k: usize) {
     debug_assert!(n > k);
     let c = k.gcd(n - k);
     let mut p = k;
-    for j in 0 .. n / c - 1 {
+    for _ in 0 .. n / c - 1 {
         for i in 0..c {
             unsafe {
                 let pa: *mut T = s.get_unchecked_mut(i);
@@ -226,7 +273,7 @@ mod tests {
             #[test]
             fn $name1() {
                 let mut buf = [1, 2, 3, 4, 5, 6];
-                super::swap_sequence(&mut buf, 1, 4, 2);
+                super::$name(&mut buf, 1, 4, 2);
                 assert_eq!(buf, [1, 5, 6, 4, 2, 3]);
             }
 
@@ -243,7 +290,6 @@ mod tests {
                 let mut buf = [1, 2, 3, 4, 5, 6];
                 super::$name(&mut buf, 1, 5, 3);
             }
-
         }
     }
 
@@ -253,6 +299,34 @@ mod tests {
     swap_test!(
         swap_unchecked, swap_unchecked_adjacent, swap_unchecked_disjoint, swap_unchecked_zero, swap_unchecked_panic
     );
+
+    #[test]
+    fn swap_inline_adjacent() {
+        let mut buf = [1, 2, 3, 4, 5, 6];
+        super::swap_inline(&mut buf, 3);
+        assert_eq!(buf, [4, 5, 6, 1, 2, 3]);
+    }
+
+    #[test]
+    fn swap_inline_disjoint() {
+        let mut buf = [1, 2, 3, 4, 5, 6];
+        super::swap_inline(&mut buf[1 .. 6], 2);
+        assert_eq!(buf, [1, 5, 6, 4, 2, 3]);
+    }
+
+    #[test]
+    fn swap_inline_zero() {
+        let mut buf = [1, 2, 3, 4, 5, 6];
+        super::swap_inline(&mut buf, 0);
+        assert_eq!(buf, [1, 2, 3, 4, 5, 6]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn swap_inline_panic() {
+        let mut buf = [1, 2, 3, 4, 5, 6];
+        super::swap_inline(&mut buf, 5);
+    }
 
     macro_rules! swap_bench {
         ($name:ident, $func:ident, $len:expr) => {
@@ -264,14 +338,27 @@ mod tests {
         }
     }
 
+    macro_rules! swap_bench_new_sig {
+        ($name:ident, $func:ident, $len:expr) => {
+            #[bench]
+            fn $name(b: &mut Bencher) {
+                let mut a = vec![0i64; $len];
+                b.iter(|| super::$func(&mut a, $len / 2));
+            }
+        }
+    }
+
     swap_bench!(swap_2_sequence, swap_sequence, 100);
     swap_bench!(swap_2_unchecked, swap_unchecked, 100);
+    swap_bench_new_sig!(swap_2_inline, swap_inline, 100);
 
     swap_bench!(swap_4_sequence, swap_sequence, 10_000);
     swap_bench!(swap_4_unchecked, swap_unchecked, 10_000);
+    swap_bench_new_sig!(swap_4_inline, swap_inline, 10_000);
 
     swap_bench!(swap_8_sequence, swap_sequence, 100_000_000);
     swap_bench!(swap_8_unchecked, swap_unchecked, 100_000_000);
+    swap_bench_new_sig!(swap_8_inline, swap_inline, 100_000_000);
 
     macro_rules! rotate_test {
         ($name:ident, $name0:ident, $name1:ident, $nameg1:ident, $nameg3:ident) => {
@@ -312,7 +399,8 @@ mod tests {
     rotate_test!(rotate_block_unchecked, rotate_block_unchecked_0, rotate_block_unchecked_1, rotate_block_unchecked_gcd1, rotate_block_unchecked_gcd3);
     rotate_test!(rotate_block_unchecked_addmod, rotate_block_unchecked_addmod_0, rotate_block_unchecked_addmod_1, rotate_block_unchecked_addmod_gcd1, rotate_block_unchecked_addmod_gcd3);
     rotate_test!(rotate_block_swap, rotate_block_swap_0, rotate_block_swap_1, rotate_block_swap_gcd1, rotate_block_swap_gcd3);
-    rotate_test!(rotate_block_adapt, rotate_block_adapt_0, rotate_block_adapt_1, rotate_block_adapt_gcd1, rotate_block_adapt_gcd3);
+    rotate_test!(rotate_block_adapt, rotate_block_adapt_0, rotate_block_adapt_1, rotate_adapt_gcd1, rotate_adapt_gcd3);
+    rotate_test!(rotate_adapt_gcd, rotate_adapt_gcd_0, rotate_adapt_gcd_1, rotate_adapt_gcd_gcd1, rotate_adapt_gcd_gcd3);
 
     macro_rules! rotate_bench {
         ($name:ident, $func:ident, $len:expr, $k:expr) => {
@@ -333,6 +421,7 @@ mod tests {
     rotate_bench!(rotate_2_40_block_unchecked_addmod, rotate_block_unchecked_addmod, 100, 40);
     rotate_bench!(rotate_2_40_block_swap, rotate_block_swap, 100, 40);
     rotate_bench!(rotate_2_40_block_adapt, rotate_block_adapt, 100, 40);
+    rotate_bench!(rotate_2_40_adapt_gcd, rotate_adapt_gcd, 100, 40);
 
     rotate_bench!(rotate_4_4000_stride, rotate_stride, 10000, 4000);
     rotate_bench!(rotate_4_4000_stride_addmod, rotate_stride_addmod, 10000, 4000);
@@ -343,6 +432,7 @@ mod tests {
     rotate_bench!(rotate_4_4000_block_unchecked_addmod, rotate_block_unchecked_addmod, 10000, 4000);
     rotate_bench!(rotate_4_4000_block_swap, rotate_block_swap, 10000, 4000);
     rotate_bench!(rotate_4_4000_block_adapt, rotate_block_adapt, 10000, 4000);
+    rotate_bench!(rotate_4_4000_adapt_gcd, rotate_adapt_gcd, 10000, 4000);
 
     rotate_bench!(rotate_4_7003_stride, rotate_stride, 10000, 7003);
     rotate_bench!(rotate_4_7003_stride_addmod, rotate_stride_addmod, 10000, 7003);
@@ -353,6 +443,7 @@ mod tests {
     rotate_bench!(rotate_4_7003_block_unchecked_addmod, rotate_block_unchecked_addmod, 10000, 7003);
     rotate_bench!(rotate_4_7003_block_swap, rotate_block_swap, 10000, 7003);
     rotate_bench!(rotate_4_7003_block_adapt, rotate_block_adapt, 10000, 7003);
+    rotate_bench!(rotate_4_7003_adapt_gcd, rotate_adapt_gcd, 10000, 7003);
 
     rotate_bench!(rotate_4_42_stride, rotate_stride, 10000, 42);
     rotate_bench!(rotate_4_42_stride_addmod, rotate_stride_addmod, 10000, 42);
@@ -363,6 +454,7 @@ mod tests {
     rotate_bench!(rotate_4_42_block_unchecked_addmod, rotate_block_unchecked_addmod, 10000, 42);
     rotate_bench!(rotate_4_42_block_swap, rotate_block_swap, 10000, 42);
     rotate_bench!(rotate_4_42_block_adapt, rotate_block_adapt, 10000, 42);
+    rotate_bench!(rotate_4_42_adapt_gcd, rotate_adapt_gcd, 10000, 42);
 
     rotate_bench!(rotate_8_4000_block, rotate_block, 100_000_000, 4000);
     rotate_bench!(rotate_8_4000_block_addmod, rotate_block_addmod, 100_000_000, 4000);
@@ -370,5 +462,20 @@ mod tests {
     rotate_bench!(rotate_8_4000_block_unchecked_addmod, rotate_block_unchecked_addmod, 100_000_000, 4000);
     rotate_bench!(rotate_8_4000_block_swap, rotate_block_swap, 100_000_000, 4000);
     rotate_bench!(rotate_8_4000_block_adapt, rotate_block_adapt, 100_000_000, 4000);
+    rotate_bench!(rotate_8_4000_adapt_gcd, rotate_adapt_gcd, 100_000_000, 4000);
+
+    // GCD 2
+    rotate_bench!(rotate_8_42_block_unchecked, rotate_block_unchecked, 100_000_000, 42);
+    rotate_bench!(rotate_8_42_block_unchecked_addmod, rotate_block_unchecked_addmod, 100_000_000, 42);
+    rotate_bench!(rotate_8_42_block_swap, rotate_block_swap, 100_000_000, 42);
+    rotate_bench!(rotate_8_42_block_adapt, rotate_block_adapt, 100_000_000, 42);
+    rotate_bench!(rotate_8_42_adapt_gcd, rotate_adapt_gcd, 100_000_000, 42);
+
+    // Prime
+    rotate_bench!(rotate_8_500009_block_unchecked, rotate_block_unchecked, 100_000_000, 500_009);
+    rotate_bench!(rotate_8_500009_block_unchecked_addmod, rotate_block_unchecked_addmod, 100_000_000, 500_009);
+    rotate_bench!(rotate_8_500009_block_swap, rotate_block_swap, 100_000_000, 500_009);
+    rotate_bench!(rotate_8_500009_block_adapt, rotate_block_adapt, 100_000_000, 500_009);
+    rotate_bench!(rotate_8_500009_adapt_gcd, rotate_adapt_gcd, 100_000_000, 500_009);
 }
 
