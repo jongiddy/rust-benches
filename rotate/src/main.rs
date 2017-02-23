@@ -14,9 +14,9 @@ fn swap_sequence<T>(s: &mut [T], a: usize, b: usize, k: usize) {
 }
 
 fn swap_unchecked<T>(s: &mut [T], a: usize, b: usize, k: usize) {
-    assert!(a + k <= s.len());
-    assert!(b + k <= s.len());
-    assert!((a + k <= b) || (b + k <= a));
+    debug_assert!(a + k <= s.len());
+    debug_assert!(b + k <= s.len());
+    debug_assert!((a + k <= b) || (b + k <= a));
     for i in 0..k {
         unsafe {
             let pa: *mut T = s.get_unchecked_mut(a + i);
@@ -44,7 +44,7 @@ fn rotate_stride<T>(s: &mut [T], k: usize) {
     if k == 0 || k == n {
         return
     }
-    assert!(n > k);
+    debug_assert!(n > k);
     let c = k.gcd(n - k);
     for i in 0 .. c {
         let mut j = (i + k) % n;
@@ -60,7 +60,7 @@ fn rotate_stride_addmod<T>(s: &mut [T], k: usize) {
     if k == 0 || k == n {
         return
     }
-    assert!(n > k);
+    debug_assert!(n > k);
     let c = k.gcd(n - k);
     for i in 0 .. c {
         let mut j = addmod(i, k, n);
@@ -76,7 +76,7 @@ fn rotate_stride_unchecked<T>(s: &mut [T], k: usize) {
     if k == 0 || k == n {
         return
     }
-    assert!(n > k);
+    debug_assert!(n > k);
     let c = k.gcd(n - k);
     for i in 0 .. c {
         let mut j = addmod(i, k, n);
@@ -96,7 +96,7 @@ fn rotate_block<T>(s: &mut [T], k: usize) {
     if k == 0 || k == n {
         return
     }
-    assert!(n > k);
+    debug_assert!(n > k);
     let c = k.gcd(n - k);
     let mut p = k;
     for j in 0 .. n / c - 1 {
@@ -114,7 +114,7 @@ fn rotate_block_addmod<T>(s: &mut [T], k: usize) {
     if k == 0 || k == n {
         return
     }
-    assert!(n > k);
+    debug_assert!(n > k);
     let c = k.gcd(n - k);
     let mut p = k;
     for j in 0 .. n / c - 1 {
@@ -130,7 +130,7 @@ fn rotate_block_swap<T>(s: &mut [T], k: usize) {
     if k == 0 || k == n {
         return
     }
-    assert!(n > k);
+    debug_assert!(n > k);
     let c = k.gcd(n - k);
     let mut p = k;
     for j in 0 .. n / c - 1 {
@@ -145,7 +145,7 @@ fn rotate_block_adapt<T>(s: &mut [T], k: usize) {
     if k == 0 || k == n {
         return
     }
-    assert!(n > k);
+    debug_assert!(n > k);
     let c = k.gcd(n - k);
     if c == 1 {
         let mut j = k;
@@ -169,7 +169,7 @@ fn rotate_block_unchecked<T>(s: &mut [T], k: usize) {
     if k == 0 || k == n {
         return
     }
-    assert!(n > k);
+    debug_assert!(n > k);
     let c = k.gcd(n - k);
     let mut p = k;
     for j in 0 .. n / c - 1 {
@@ -190,7 +190,7 @@ fn rotate_block_unchecked_addmod<T>(s: &mut [T], k: usize) {
     if k == 0 || k == n {
         return
     }
-    assert!(n > k);
+    debug_assert!(n > k);
     let c = k.gcd(n - k);
     let mut p = k;
     for j in 0 .. n / c - 1 {
@@ -364,8 +364,6 @@ mod tests {
     rotate_bench!(rotate_4_42_block_swap, rotate_block_swap, 10000, 42);
     rotate_bench!(rotate_4_42_block_adapt, rotate_block_adapt, 10000, 42);
 
-    rotate_bench!(rotate_8_4000_stride_addmod, rotate_stride_addmod, 100_000_000, 4000);
-    rotate_bench!(rotate_8_4000_stride_unchecked, rotate_stride_unchecked, 100_000_000, 4000);
     rotate_bench!(rotate_8_4000_block, rotate_block, 100_000_000, 4000);
     rotate_bench!(rotate_8_4000_block_addmod, rotate_block_addmod, 100_000_000, 4000);
     rotate_bench!(rotate_8_4000_block_unchecked, rotate_block_unchecked, 100_000_000, 4000);
