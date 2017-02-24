@@ -600,10 +600,6 @@ mod tests {
     rotate_bench!(rotate_8_42_adapt_gcd_noof, rotate_adapt_gcd_no_overflow, 100_000_000, 42);
 
     // Prime
-    rotate_bench!(rotate_8_500009_block_unchecked, rotate_block_unchecked, 100_000_000, 500_009);
-    rotate_bench!(rotate_8_500009_block_unchecked_addmod, rotate_block_unchecked_addmod, 100_000_000, 500_009);
-    rotate_bench!(rotate_8_500009_block_swap, rotate_block_swap, 100_000_000, 500_009);
-    rotate_bench!(rotate_8_500009_block_adapt, rotate_block_adapt, 100_000_000, 500_009);
     rotate_bench!(rotate_8_500009_adapt_gcd, rotate_adapt_gcd, 100_000_000, 500_009);
     rotate_bench!(rotate_8_500009_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 100_000_000, 500_009);
     rotate_bench!(rotate_8_500009_adapt_gcd_noof, rotate_adapt_gcd_no_overflow, 100_000_000, 500_009);

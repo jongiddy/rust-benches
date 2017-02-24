@@ -67,3 +67,13 @@ test tests::rotate_8_42_block_unchecked_addmod     ... bench: 709,943,581 ns/ite
 test tests::rotate_8_500009_adapt_gcd              ... bench: 1,084,721,090 ns/iter (+/- 22,640,091)
 test tests::rotate_8_500009_adapt_gcd_noof         ... bench: 1,104,674,457 ns/iter (+/- 22,281,971)
 test tests::rotate_8_500009_adapt_gcd_unsafe       ... bench: 1,086,800,961 ns/iter (+/- 43,783,819)
+...
+test tests::swap_2_inline    ... bench:          16 ns/iter (+/- 1)
+test tests::swap_2_sequence  ... bench:          57 ns/iter (+/- 20)
+test tests::swap_2_unchecked ... bench:          16 ns/iter (+/- 1)
+test tests::swap_4_inline    ... bench:       2,556 ns/iter (+/- 282)
+test tests::swap_4_sequence  ... bench:       4,602 ns/iter (+/- 164)
+test tests::swap_4_unchecked ... bench:       2,550 ns/iter (+/- 109)
+test tests::swap_8_inline    ... bench:  81,532,058 ns/iter (+/- 1,224,231)
+test tests::swap_8_sequence  ... bench:  83,144,612 ns/iter (+/- 919,453)
+test tests::swap_8_unchecked ... bench:  81,475,496 ns/iter (+/- 688,834)
