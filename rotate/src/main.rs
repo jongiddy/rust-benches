@@ -41,7 +41,10 @@ fn swap_inline<T>(s: &mut [T], k: usize) {
 }
 
 #[inline]
-fn addmod(a: usize, b: usize, n: usize) -> usize {
+fn addmod<T>(a: T, b: T, n: T) -> T
+    where
+        T: std::ops::Add<Output=T> + std::ops::Sub<Output=T> + Copy + PartialOrd
+{
     // Faster than using the % operator, addition of two mod values can
     // never be more than 2n - 2, so a single subtraction gets back into range
     let c = a + b;
@@ -50,6 +53,26 @@ fn addmod(a: usize, b: usize, n: usize) -> usize {
     }
     else {
         c
+    }
+}
+
+#[inline]
+fn addmod_no_overflow<T>(a: T, b: T, n: T) -> T
+    where
+        T: std::ops::Add<Output=T> + std::ops::Sub<Output=T> + Copy + PartialOrd
+{
+    // Faster than using the % operator
+    let c = n - a;
+    if b >= c {
+        // b >= n - a  ->  b + a >= n.
+        // a < n, b < n  ->  a + b < 2n
+        // Hence: n <= a + b <= 2n - 1  ->  0 < a + b - n < n - 1
+        // a + b - n  =  b - n + a  =  b - (n - a)  =  b - c
+        b - c
+    }
+    else {
+        // if b < n - a, then b + a < n, and in the modulo range
+        a + b
     }
 }
 
@@ -81,6 +104,39 @@ fn rotate_adapt_gcd<T>(s: &mut [T], k: usize) {
             for _ in 0 .. n / blksize - 1 {
                 swap_inline(&mut s[0 .. j + blksize], blksize);
                 j = addmod(j, k, n);
+            }
+        },
+    }
+}
+
+fn rotate_adapt_gcd_no_overflow<T>(s: &mut [T], k: usize) {
+    let n = s.len();
+    if k == 0 || k == n {
+        return
+    }
+    debug_assert!(k < n);
+    match k.gcd(n - k) {
+        1 => {
+            let mut j = k;
+            while j != 0 {
+                s.swap(0, j);
+                j = addmod_no_overflow(j, k, n);
+            }
+        },
+        2 => {
+            let mut j = k;
+            while j != 0 {
+                s.swap(0, j);
+                s.swap(1, j + 1);
+                j = addmod_no_overflow(j, k, n);
+            }
+
+        },
+        blksize => {
+            let mut j = k;
+            for _ in 0 .. n / blksize - 1 {
+                swap_inline(&mut s[0 .. j + blksize], blksize);
+                j = addmod_no_overflow(j, k, n);
             }
         },
     }
@@ -306,6 +362,19 @@ fn main() {
 mod tests {
     use test::Bencher;
 
+    #[test]
+    #[should_panic]
+    fn addmod_overflow() {
+        let max = u16::max_value();
+        super::addmod(max - 1, max - 1, max);
+    }
+
+    #[test]
+    fn addmod_no_overflow() {
+        let max = u16::max_value();
+        assert_eq!(super::addmod_no_overflow(max - 1, max - 1, max), max - 2);
+    }
+
     macro_rules! swap_test {
         ($name:ident, $name0:ident, $name1:ident, $name2:ident, $name3:ident) => {
             #[test]
@@ -447,6 +516,7 @@ mod tests {
     rotate_test!(rotate_block_adapt, rotate_block_adapt_0, rotate_block_adapt_1, rotate_adapt_gcd1, rotate_adapt_gcd3);
     rotate_test!(rotate_adapt_gcd, rotate_adapt_gcd_0, rotate_adapt_gcd_1, rotate_adapt_gcd_gcd1, rotate_adapt_gcd_gcd3);
     rotate_test!(rotate_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe_0, rotate_adapt_gcd_unsafe_1, rotate_adapt_gcd_unsafe_gcd1, rotate_adapt_gcd_unsafe_gcd3);
+    rotate_test!(rotate_adapt_gcd_no_overflow, rotate_adapt_gcd_no_overflow_0, rotate_adapt_gcd_no_overflow_1, rotate_adapt_gcd_no_overflow_gcd1, rotate_adapt_gcd_no_overflow_gcd3);
 
     macro_rules! rotate_bench {
         ($name:ident, $func:ident, $len:expr, $k:expr) => {
@@ -469,6 +539,7 @@ mod tests {
     rotate_bench!(rotate_2_40_block_adapt, rotate_block_adapt, 100, 40);
     rotate_bench!(rotate_2_40_adapt_gcd, rotate_adapt_gcd, 100, 40);
     rotate_bench!(rotate_2_40_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 100, 40);
+    rotate_bench!(rotate_2_40_adapt_gcd_noof, rotate_adapt_gcd_no_overflow, 100, 40);
 
     rotate_bench!(rotate_4_4000_stride, rotate_stride, 10000, 4000);
     rotate_bench!(rotate_4_4000_stride_addmod, rotate_stride_addmod, 10000, 4000);
@@ -481,6 +552,7 @@ mod tests {
     rotate_bench!(rotate_4_4000_block_adapt, rotate_block_adapt, 10000, 4000);
     rotate_bench!(rotate_4_4000_adapt_gcd, rotate_adapt_gcd, 10000, 4000);
     rotate_bench!(rotate_4_4000_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 10000, 4000);
+    rotate_bench!(rotate_4_4000_adapt_gcd_noof, rotate_adapt_gcd_no_overflow, 10000, 4000);
 
     rotate_bench!(rotate_4_7003_stride, rotate_stride, 10000, 7003);
     rotate_bench!(rotate_4_7003_stride_addmod, rotate_stride_addmod, 10000, 7003);
@@ -493,6 +565,7 @@ mod tests {
     rotate_bench!(rotate_4_7003_block_adapt, rotate_block_adapt, 10000, 7003);
     rotate_bench!(rotate_4_7003_adapt_gcd, rotate_adapt_gcd, 10000, 7003);
     rotate_bench!(rotate_4_7003_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 10000, 7003);
+    rotate_bench!(rotate_4_7003_adapt_gcd_noof, rotate_adapt_gcd_no_overflow, 10000, 7003);
 
     rotate_bench!(rotate_4_42_stride, rotate_stride, 10000, 42);
     rotate_bench!(rotate_4_42_stride_addmod, rotate_stride_addmod, 10000, 42);
@@ -505,6 +578,7 @@ mod tests {
     rotate_bench!(rotate_4_42_block_adapt, rotate_block_adapt, 10000, 42);
     rotate_bench!(rotate_4_42_adapt_gcd, rotate_adapt_gcd, 10000, 42);
     rotate_bench!(rotate_4_42_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 10000, 42);
+    rotate_bench!(rotate_4_42_adapt_gcd_noof, rotate_adapt_gcd_no_overflow, 10000, 42);
 
     rotate_bench!(rotate_8_4000_block, rotate_block, 100_000_000, 4000);
     rotate_bench!(rotate_8_4000_block_addmod, rotate_block_addmod, 100_000_000, 4000);
@@ -514,6 +588,7 @@ mod tests {
     rotate_bench!(rotate_8_4000_block_adapt, rotate_block_adapt, 100_000_000, 4000);
     rotate_bench!(rotate_8_4000_adapt_gcd, rotate_adapt_gcd, 100_000_000, 4000);
     rotate_bench!(rotate_8_4000_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 100_000_000, 4000);
+    rotate_bench!(rotate_8_4000_adapt_gcd_noof, rotate_adapt_gcd_no_overflow, 100_000_000, 4000);
 
     // GCD 2
     rotate_bench!(rotate_8_42_block_unchecked, rotate_block_unchecked, 100_000_000, 42);
@@ -522,6 +597,7 @@ mod tests {
     rotate_bench!(rotate_8_42_block_adapt, rotate_block_adapt, 100_000_000, 42);
     rotate_bench!(rotate_8_42_adapt_gcd, rotate_adapt_gcd, 100_000_000, 42);
     rotate_bench!(rotate_8_42_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 100_000_000, 42);
+    rotate_bench!(rotate_8_42_adapt_gcd_noof, rotate_adapt_gcd_no_overflow, 100_000_000, 42);
 
     // Prime
     rotate_bench!(rotate_8_500009_block_unchecked, rotate_block_unchecked, 100_000_000, 500_009);
@@ -530,5 +606,6 @@ mod tests {
     rotate_bench!(rotate_8_500009_block_adapt, rotate_block_adapt, 100_000_000, 500_009);
     rotate_bench!(rotate_8_500009_adapt_gcd, rotate_adapt_gcd, 100_000_000, 500_009);
     rotate_bench!(rotate_8_500009_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 100_000_000, 500_009);
+    rotate_bench!(rotate_8_500009_adapt_gcd_noof, rotate_adapt_gcd_no_overflow, 100_000_000, 500_009);
 }
 
