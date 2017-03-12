@@ -188,6 +188,40 @@ fn rotate_reverse<T>(s: &mut [T], k: usize) {
     reverse(&mut s[k .. n]);
 }
 
+use std::cmp::Ordering;
+
+fn rotate_swap<T>(s: &mut [T], k: usize) {
+    // Rotate two sections by swapping the ends repeatedly
+    // e.g. For A-B, if B is shorter:
+    // A-A'-B => B-A'-A - B is now in correct position
+    // rename A -> B and A' -> A
+    let mut left = 0;
+    let mut right = s.len();
+    let mut llen = right - k;
+    let mut rlen = k;
+    if llen == 0 || rlen == 0 {
+        return
+    }
+    loop {
+        match llen.cmp(&rlen) {
+            Ordering::Less => {
+                swap_inline(&mut s[left .. right], llen);
+                right -= llen;
+                rlen -= llen;
+            },
+            Ordering::Greater => {
+                swap_inline(&mut s[left .. right], rlen);
+                left += rlen;
+                llen -= rlen;
+            },
+            Ordering::Equal => {
+                swap_inline(&mut s[left .. right], llen);
+                return
+            }
+        }
+    }
+}
+
 fn rotate_stride<T>(s: &mut [T], k: usize) {
     let n = s.len();
     if k == 0 || k == n {
@@ -524,6 +558,7 @@ mod tests {
     rotate_test!(rotate_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe_0, rotate_adapt_gcd_unsafe_1, rotate_adapt_gcd_unsafe_gcd1, rotate_adapt_gcd_unsafe_gcd3);
     rotate_test!(rotate_adapt_gcd, rotate_adapt_gcd_0, rotate_adapt_gcd_1, rotate_adapt_gcd_gcd1, rotate_adapt_gcd_gcd3);
     rotate_test!(rotate_reverse_gcd, rotate_reverse_gcd_0, rotate_reverse_gcd_1, rotate_reverse_gcd_gcd1, rotate_reverse_gcd_gcd3);
+    rotate_test!(rotate_swap, rotate_swap_0, rotate_swap_1, rotate_swap_gcd1, rotate_swap_gcd3);
 
     macro_rules! rotate_bench {
         ($name:ident, $func:ident, $power:expr, $gcd:expr) => {
@@ -550,6 +585,7 @@ mod tests {
     rotate_bench!(rotate_1_1_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 1, 1);
     rotate_bench!(rotate_1_1_reverse_gcd, rotate_reverse_gcd, 1, 1);
     rotate_bench!(rotate_1_1_adapt_gcd_noof, rotate_adapt_gcd, 1, 1);
+    rotate_bench!(rotate_1_1_swap, rotate_swap, 1, 1);
 
     rotate_bench!(rotate_1_2_stride, rotate_stride, 1, 2);
     rotate_bench!(rotate_1_2_stride_addmod, rotate_stride_addmod, 1, 2);
@@ -564,6 +600,7 @@ mod tests {
     rotate_bench!(rotate_1_2_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 1, 2);
     rotate_bench!(rotate_1_2_reverse_gcd, rotate_reverse_gcd, 1, 2);
     rotate_bench!(rotate_1_2_adapt_gcd_noof, rotate_adapt_gcd, 1, 2);
+    rotate_bench!(rotate_1_2_swap, rotate_swap, 1, 2);
 
     rotate_bench!(rotate_1_3_stride, rotate_stride, 1, 3);
     rotate_bench!(rotate_1_3_stride_addmod, rotate_stride_addmod, 1, 3);
@@ -578,6 +615,7 @@ mod tests {
     rotate_bench!(rotate_1_3_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 1, 3);
     rotate_bench!(rotate_1_3_reverse_gcd, rotate_reverse_gcd, 1, 3);
     rotate_bench!(rotate_1_3_adapt_gcd_noof, rotate_adapt_gcd, 1, 3);
+    rotate_bench!(rotate_1_3_swap, rotate_swap, 1, 3);
 
     rotate_bench!(rotate_1_4_stride, rotate_stride, 1, 4);
     rotate_bench!(rotate_1_4_stride_addmod, rotate_stride_addmod, 1, 4);
@@ -592,6 +630,7 @@ mod tests {
     rotate_bench!(rotate_1_4_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 1, 4);
     rotate_bench!(rotate_1_4_reverse_gcd, rotate_reverse_gcd, 1, 4);
     rotate_bench!(rotate_1_4_adapt_gcd_noof, rotate_adapt_gcd, 1, 4);
+    rotate_bench!(rotate_1_4_swap, rotate_swap, 1, 4);
 
     rotate_bench!(rotate_1_5_stride, rotate_stride, 1, 5);
     rotate_bench!(rotate_1_5_stride_addmod, rotate_stride_addmod, 1, 5);
@@ -606,6 +645,7 @@ mod tests {
     rotate_bench!(rotate_1_5_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 1, 5);
     rotate_bench!(rotate_1_5_reverse_gcd, rotate_reverse_gcd, 1, 5);
     rotate_bench!(rotate_1_5_adapt_gcd_noof, rotate_adapt_gcd, 1, 5);
+    rotate_bench!(rotate_1_5_swap, rotate_swap, 1, 5);
 
     rotate_bench!(rotate_1_500_stride, rotate_stride, 1, 500);
     rotate_bench!(rotate_1_500_stride_addmod, rotate_stride_addmod, 1, 500);
@@ -620,6 +660,7 @@ mod tests {
     rotate_bench!(rotate_1_500_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 1, 500);
     rotate_bench!(rotate_1_500_reverse_gcd, rotate_reverse_gcd, 1, 500);
     rotate_bench!(rotate_1_500_adapt_gcd_noof, rotate_adapt_gcd, 1, 500);
+    rotate_bench!(rotate_1_500_swap, rotate_swap, 1, 500);
 
     rotate_bench!(rotate_2_1_stride, rotate_stride, 2, 1);
     rotate_bench!(rotate_2_1_stride_addmod, rotate_stride_addmod, 2, 1);
@@ -634,6 +675,7 @@ mod tests {
     rotate_bench!(rotate_2_1_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 2, 1);
     rotate_bench!(rotate_2_1_reverse_gcd, rotate_reverse_gcd, 2, 1);
     rotate_bench!(rotate_2_1_adapt_gcd_noof, rotate_adapt_gcd, 2, 1);
+    rotate_bench!(rotate_2_1_swap, rotate_swap, 2, 1);
 
     rotate_bench!(rotate_2_2_stride, rotate_stride, 2, 2);
     rotate_bench!(rotate_2_2_stride_addmod, rotate_stride_addmod, 2, 2);
@@ -648,6 +690,7 @@ mod tests {
     rotate_bench!(rotate_2_2_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 2, 2);
     rotate_bench!(rotate_2_2_reverse_gcd, rotate_reverse_gcd, 2, 2);
     rotate_bench!(rotate_2_2_adapt_gcd_noof, rotate_adapt_gcd, 2, 2);
+    rotate_bench!(rotate_2_2_swap, rotate_swap, 2, 2);
 
     rotate_bench!(rotate_2_3_stride, rotate_stride, 2, 3);
     rotate_bench!(rotate_2_3_stride_addmod, rotate_stride_addmod, 2, 3);
@@ -662,6 +705,7 @@ mod tests {
     rotate_bench!(rotate_2_3_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 2, 3);
     rotate_bench!(rotate_2_3_reverse_gcd, rotate_reverse_gcd, 2, 3);
     rotate_bench!(rotate_2_3_adapt_gcd_noof, rotate_adapt_gcd, 2, 3);
+    rotate_bench!(rotate_2_3_swap, rotate_swap, 2, 3);
 
     rotate_bench!(rotate_2_4_stride, rotate_stride, 2, 4);
     rotate_bench!(rotate_2_4_stride_addmod, rotate_stride_addmod, 2, 4);
@@ -676,6 +720,7 @@ mod tests {
     rotate_bench!(rotate_2_4_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 2, 4);
     rotate_bench!(rotate_2_4_reverse_gcd, rotate_reverse_gcd, 2, 4);
     rotate_bench!(rotate_2_4_adapt_gcd_noof, rotate_adapt_gcd, 2, 4);
+    rotate_bench!(rotate_2_4_swap, rotate_swap, 2, 4);
 
     rotate_bench!(rotate_2_5_stride, rotate_stride, 2, 5);
     rotate_bench!(rotate_2_5_stride_addmod, rotate_stride_addmod, 2, 5);
@@ -690,6 +735,7 @@ mod tests {
     rotate_bench!(rotate_2_5_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 2, 5);
     rotate_bench!(rotate_2_5_reverse_gcd, rotate_reverse_gcd, 2, 5);
     rotate_bench!(rotate_2_5_adapt_gcd_noof, rotate_adapt_gcd, 2, 5);
+    rotate_bench!(rotate_2_5_swap, rotate_swap, 2, 5);
 
     rotate_bench!(rotate_2_500_stride, rotate_stride, 2, 500);
     rotate_bench!(rotate_2_500_stride_addmod, rotate_stride_addmod, 2, 500);
@@ -704,4 +750,5 @@ mod tests {
     rotate_bench!(rotate_2_500_adapt_gcd_unsafe, rotate_adapt_gcd_unsafe, 2, 500);
     rotate_bench!(rotate_2_500_reverse_gcd, rotate_reverse_gcd, 2, 500);
     rotate_bench!(rotate_2_500_adapt_gcd_noof, rotate_adapt_gcd, 2, 500);
+    rotate_bench!(rotate_2_500_swap, rotate_swap, 2, 500);
 }
